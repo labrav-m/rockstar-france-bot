@@ -36,23 +36,24 @@ client.on("messageCreate", async (message) => {
   const embed = message.embeds[0];
 
   if (!embed.title || !embed.title.includes("Nouvelle demande de partenariat")) return;
-  if (message.components.length > 0) return;
 
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("accepter_partenaire")
-      .setLabel("✅ Accepter")
-      .setStyle(ButtonStyle.Success),
+const oldComponents = message.components || [];
 
-    new ButtonBuilder()
-      .setCustomId("refuser_partenaire")
-      .setLabel("❌ Refuser")
-      .setStyle(ButtonStyle.Danger)
-  );
+const staffButtons = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId("accepter_partenaire")
+    .setLabel("✅ Accepter")
+    .setStyle(ButtonStyle.Success),
 
-  await message.edit({
-    components: [row]
-  });
+  new ButtonBuilder()
+    .setCustomId("refuser_partenaire")
+    .setLabel("❌ Refuser")
+    .setStyle(ButtonStyle.Danger)
+);
+
+await message.edit({
+  components: [...oldComponents, staffButtons]
+});
 
   console.log("✅ Boutons ajoutés sur une nouvelle demande.");
 });
