@@ -80,11 +80,13 @@ client.on("interactionCreate", async (interaction) => {
 
   const pseudoField = fields.find(f => f.name.includes("Pseudo"));
   const lienField = fields.find(f => f.name.includes("Lien"));
+  const discordIdField = fields.find(f => f.name.includes("ID Discord"));
   const membresField = fields.find(f => f.name.includes("Membres"));
   const viewersField = fields.find(f => f.name.includes("Viewers"));
 
   const pseudo = pseudoField?.value || "Non renseigné";
   const lien = lienField?.value || "Aucun lien";
+  const discordIdField = fields.find(f => f.name.includes("ID Discord"));
   const membres = membresField?.value || "Non renseigné";
   const viewers = viewersField?.value || "Non renseigné";
 
