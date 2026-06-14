@@ -30,32 +30,34 @@ client.once("ready", () => {
 });
 
 client.on("messageCreate", async (message) => {
-  if (message.author.bot === false) return;
+  if (!message.author.bot) return;
   if (!message.embeds.length) return;
 
   const embed = message.embeds[0];
 
   if (!embed.title || !embed.title.includes("Nouvelle demande de partenariat")) return;
 
-const oldComponents = message.components || [];
+  const staffButtons = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("accepter_partenaire")
+      .setLabel("✅ Accepter")
+      .setStyle(ButtonStyle.Success),
 
-const staffButtons = new ActionRowBuilder().addComponents(
-  new ButtonBuilder()
-    .setCustomId("accepter_partenaire")
-    .setLabel("✅ Accepter")
-    .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId("refuser_partenaire")
+      .setLabel("❌ Refuser")
+      .setStyle(ButtonStyle.Danger)
+  );
 
-  new ButtonBuilder()
-    .setCustomId("refuser_partenaire")
-    .setLabel("❌ Refuser")
-    .setStyle(ButtonStyle.Danger)
-);
+  const linkButtons = message.components.length > 0 ? message.components : [];
 
-await message.edit({
-  components: [...oldComponents, staffButtons]
-});
+  await message.channel.send({
+    content: "📋 **Demande à traiter par le staff :**",
+    embeds: [embed],
+    components: [...linkButtons, staffButtons]
+  });
 
-  console.log("✅ Boutons ajoutés sur une nouvelle demande.");
+  console.log("✅ Demande repostée par le bot avec boutons staff.");
 });
 
 client.on("interactionCreate", async (interaction) => {
