@@ -51,7 +51,6 @@ client.on("interactionCreate", async (interaction) => {
 
   const pseudo = pseudoField?.value || "Non renseigné";
   const lien = lienField?.value || "Aucun lien";
-  const responsable = responsableField?.value || "Non renseigné";
 
   if (interaction.customId === "accepter_partenaire") {
     const acceptedEmbed = EmbedBuilder.from(oldEmbed)
