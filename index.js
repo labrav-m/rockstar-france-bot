@@ -65,6 +65,15 @@ client.on("interactionCreate", async (interaction) => {
 
   const message = interaction.message;
   const oldEmbed = message.embeds[0];
+  if (
+  oldEmbed.title?.includes("Partenariat accepté") ||
+  oldEmbed.title?.includes("Partenariat refusé")
+) {
+  return interaction.reply({
+    content: "⚠️ Cette demande a déjà été traitée.",
+    ephemeral: true
+  });
+}
 
   if (!oldEmbed) {
     return interaction.reply({
@@ -92,6 +101,7 @@ client.on("interactionCreate", async (interaction) => {
   const viewers = viewersField?.value || "Non renseigné";
 
   if (interaction.customId === "accepter_partenaire") {
+    await interaction.deferReply({ ephemeral: true });
     let member = null;
 
 if (discordId) {
@@ -155,13 +165,12 @@ if (discordId) {
         `👮 Staff : ${interaction.user}`
     });
 
-    await interaction.reply({
-      content: "✅ Partenariat accepté et enregistré.",
-      ephemeral: true
-    });
-  }
+    await interaction.editReply({
+  content: "✅ Partenariat accepté et enregistré."
+});
 
   if (interaction.customId === "refuser_partenaire") {
+    await interaction.deferReply({ ephemeral: true });
     let member = null;
 
 if (discordId) {
@@ -217,10 +226,9 @@ if (member) {
         `👮 Staff : ${interaction.user}`
     });
 
-    await interaction.reply({
-      content: "❌ Partenariat refusé et enregistré.",
-      ephemeral: true
-    });
+    await interaction.editReply({
+  content: "❌ Partenariat refusé et enregistré."
+});
   }
 });
 
