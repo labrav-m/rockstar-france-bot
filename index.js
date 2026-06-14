@@ -24,6 +24,7 @@ const RAPPORTS_CHANNEL_ID = "1512994911388172288";
 const VALIDES_CHANNEL_ID = "1515754593810649118";
 const PARTENAIRE_ROLE_ID = "1515065793790873761";
 
+const SITE_URL = "https://rockstar-france.gamer.free";
 const PORT = process.env.PORT || 3000;
 
 const client = new Client({
@@ -64,7 +65,7 @@ app.get("/login", (req, res) => {
     "&response_type=code" +
     "&scope=identify%20guilds";
 
-  res.redirect(url);
+  return res.redirect(url);
 });
 
 app.get("/oauth/callback", async (req, res) => {
@@ -117,7 +118,7 @@ app.get("/oauth/callback", async (req, res) => {
       return res.send(`
         <h1>Accès refusé</h1>
         <p>Tu dois rejoindre le serveur Rockstar France avant de postuler.</p>
-        <a href="https://discord.gg/testbot">Rejoindre le serveur</a>
+        <a href="https://discord.gg/D4JpNnFnvT">Rejoindre le serveur</a>
       `);
     }
 
@@ -125,23 +126,18 @@ app.get("/oauth/callback", async (req, res) => {
       ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
       : "";
 
-    res.send(`
-      <h1>Compte Discord vérifié</h1>
-      <p>Tu peux retourner sur le formulaire.</p>
+    const finalUrl =
+      `${SITE_URL}/?verified=true` +
+      `&discord_id=${encodeURIComponent(user.id)}` +
+      `&discord_username=${encodeURIComponent(user.username)}` +
+      `&discord_global_name=${encodeURIComponent(user.global_name || user.username)}` +
+      `&discord_avatar=${encodeURIComponent(avatarUrl)}` +
+      `#collaboration`;
 
-      <script>
-        localStorage.setItem("discord_verified", "true");
-        localStorage.setItem("discord_id", "${user.id}");
-        localStorage.setItem("discord_username", "${user.username}");
-        localStorage.setItem("discord_global_name", "${user.global_name || user.username}");
-        localStorage.setItem("discord_avatar", "${avatarUrl}");
-
-        window.location.href = "https://rockstar-france.gamer.free/#collaboration";
-      </script>
-    `);
+    return res.redirect(finalUrl);
   } catch (error) {
     console.error("Erreur OAuth :", error.response?.data || error.message);
-    res.send("Erreur pendant la vérification Discord.");
+    return res.send("Erreur pendant la vérification Discord.");
   }
 });
 
@@ -151,10 +147,6 @@ app.get("/oauth/callback", async (req, res) => {
 
 client.once(Events.ClientReady, () => {
   console.log(`✅ Rockstar France Bot connecté : ${client.user.tag}`);
-});
-
-client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot !== false) return;
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -216,9 +208,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         try {
           await member.send(
             "✅ **Partenariat accepté — Rockstar France**\n\n" +
-            "Votre demande de partenariat a été acceptée.\n" +
-            "Le rôle **Partenaire** vous a été ajouté sur le serveur.\n\n" +
-            "Merci de respecter les conditions du partenariat."
+              "Votre demande de partenariat a été acceptée.\n" +
+              "Le rôle **Partenaire** vous a été ajouté sur le serveur.\n\n" +
+              "Merci de respecter les conditions du partenariat."
           );
         } catch {
           console.log("MP impossible à envoyer.");
@@ -273,8 +265,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         try {
           await member.send(
             "❌ **Partenariat refusé — Rockstar France**\n\n" +
-            "Votre demande de partenariat a été refusée.\n" +
-            "Vous pouvez retenter plus tard avec une demande plus complète."
+              "Votre demande de partenariat a été refusée.\n" +
+              "Vous pouvez retenter plus tard avec une demande plus complète."
           );
         } catch {
           console.log("MP impossible à envoyer.");
