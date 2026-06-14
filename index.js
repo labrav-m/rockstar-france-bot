@@ -1,3 +1,6 @@
+const express = require("express");
+const axios = require("axios");
+
 const {
   Client,
   GatewayIntentBits,
@@ -9,6 +12,20 @@ const {
   Events
 } = require("discord.js");
 
+const app = express();
+
+const TOKEN = process.env.DISCORD_TOKEN;
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
+const GUILD_ID = process.env.GUILD_ID;
+
+const RAPPORTS_CHANNEL_ID = "1512994911388172288";
+const VALIDES_CHANNEL_ID = "1515754593810649118";
+const PARTENAIRE_ROLE_ID = "1515065793790873761";
+
+const PORT = process.env.PORT || 3000;
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -19,99 +36,163 @@ const client = new Client({
   partials: [Partials.Channel]
 });
 
-const TOKEN = process.env.DISCORD_TOKEN;
-
-const RAPPORTS_CHANNEL_ID = "1512994911388172288";
-const VALIDES_CHANNEL_ID = "1515754593810649118";
-const PARTENAIRE_ROLE_ID = "1515065793790873761";
-
-client.once(Events.ClientReady, () => {
-  console.log(`✅ Rockstar France Bot connecté : ${client.user.tag}`);
-});
-
 function getField(embed, text) {
-  return embed.fields?.find(f =>
+  return embed.fields?.find((f) =>
     f.name.toLowerCase().includes(text.toLowerCase())
   );
 }
 
 function extractDiscordId(value) {
   if (!value) return null;
-  const clean = value.replace(/\D/g, "");
+  const clean = String(value).replace(/\D/g, "");
   return clean.length >= 17 ? clean : null;
 }
 
-client.on(Events.MessageCreate, async (message) => {
+/* =========================
+   OAUTH DISCORD
+========================= */
+
+app.get("/", (req, res) => {
+  res.send("Rockstar France Bot en ligne.");
+});
+
+app.get("/login", (req, res) => {
+  const url =
+    "https://discord.com/oauth2/authorize" +
+    `?client_id=${CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    "&response_type=code" +
+    "&scope=identify%20guilds";
+
+  res.redirect(url);
+});
+
+app.get("/oauth/callback", async (req, res) => {
+  const code = req.query.code;
+
+  if (!code) {
+    return res.send("Erreur : aucun code Discord reçu.");
+  }
+
   try {
-    if (!message.author.bot) return;
-    if (message.author.id === client.user.id) return;
-    if (!message.embeds.length) return;
-
-    const embed = message.embeds[0];
-
-    if (!embed.title?.includes("Nouvelle demande de partenariat")) return;
-
-    const linkButtons = message.components || [];
-
-    const staffButtons = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("accepter_partenaire")
-        .setLabel("✅ Accepter")
-        .setStyle(ButtonStyle.Success),
-
-      new ButtonBuilder()
-        .setCustomId("refuser_partenaire")
-        .setLabel("❌ Refuser")
-        .setStyle(ButtonStyle.Danger)
+    const tokenResponse = await axios.post(
+      "https://discord.com/api/oauth2/token",
+      new URLSearchParams({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: REDIRECT_URI
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      }
     );
 
-    await message.channel.send({
-      content: "📋 **Demande à traiter par le staff :**",
-      embeds: [embed],
-      components: [...linkButtons, staffButtons]
+    const accessToken = tokenResponse.data.access_token;
+
+    const userResponse = await axios.get("https://discord.com/api/users/@me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
     });
 
-    await message.delete().catch(() => {});
+    const guildsResponse = await axios.get(
+      "https://discord.com/api/users/@me/guilds",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    const user = userResponse.data;
+    const guilds = guildsResponse.data;
+
+    const isMember = guilds.some((guild) => guild.id === GUILD_ID);
+
+    if (!isMember) {
+      return res.send(`
+        <h1>Accès refusé</h1>
+        <p>Tu dois rejoindre le serveur Rockstar France avant de postuler.</p>
+        <a href="https://discord.gg/testbot">Rejoindre le serveur</a>
+      `);
+    }
+
+    const avatarUrl = user.avatar
+      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+      : "";
+
+    res.send(`
+      <h1>Compte Discord vérifié</h1>
+      <p>Tu peux retourner sur le formulaire.</p>
+
+      <script>
+        localStorage.setItem("discord_verified", "true");
+        localStorage.setItem("discord_id", "${user.id}");
+        localStorage.setItem("discord_username", "${user.username}");
+        localStorage.setItem("discord_global_name", "${user.global_name || user.username}");
+        localStorage.setItem("discord_avatar", "${avatarUrl}");
+
+        window.location.href = "https://rockstar-france.gamer.free/#collaboration";
+      </script>
+    `);
   } catch (error) {
-    console.error("Erreur messageCreate :", error);
+    console.error("Erreur OAuth :", error.response?.data || error.message);
+    res.send("Erreur pendant la vérification Discord.");
   }
+});
+
+/* =========================
+   BOT DISCORD
+========================= */
+
+client.once(Events.ClientReady, () => {
+  console.log(`✅ Rockstar France Bot connecté : ${client.user.tag}`);
+});
+
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot !== false) return;
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
+
+  if (
+    interaction.customId !== "accepter_partenaire" &&
+    interaction.customId !== "refuser_partenaire"
+  ) {
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
 
   try {
     const message = interaction.message;
     const oldEmbed = message.embeds[0];
 
     if (!oldEmbed) {
-      return interaction.reply({
-        content: "❌ Aucun embed trouvé.",
-        ephemeral: true
-      });
+      return interaction.editReply("❌ Aucun embed trouvé.");
     }
 
-    if (
-      oldEmbed.title?.includes("Partenariat accepté") ||
-      oldEmbed.title?.includes("Partenariat refusé")
-    ) {
-      return interaction.reply({
-        content: "⚠️ Cette demande a déjà été traitée.",
-        ephemeral: true
-      });
-    }
+    const alreadyProcessed = oldEmbed.fields?.some((field) =>
+      field.name.toLowerCase().includes("statut")
+    );
 
-    await interaction.deferReply({ ephemeral: true });
+    if (alreadyProcessed) {
+      return interaction.editReply("⚠️ Cette demande a déjà été traitée.");
+    }
 
     const rapportsChannel = await client.channels.fetch(RAPPORTS_CHANNEL_ID);
     const validesChannel = await client.channels.fetch(VALIDES_CHANNEL_ID);
 
-    const pseudo = getField(oldEmbed, "Pseudo")?.value || "Non renseigné";
-    const lien = getField(oldEmbed, "Lien")?.value || "Aucun lien";
-    const membres = getField(oldEmbed, "Membres")?.value || "Non renseigné";
-    const viewers = getField(oldEmbed, "Viewers")?.value || "Non renseigné";
-
-    const discordIdValue = getField(oldEmbed, "ID Discord")?.value;
+    const pseudo = getField(oldEmbed, "pseudo")?.value || "Non renseigné";
+    const lien = getField(oldEmbed, "lien")?.value || "Aucun lien";
+    const membres = getField(oldEmbed, "membres")?.value || "Non renseigné";
+    const viewers = getField(oldEmbed, "viewers")?.value || "Non renseigné";
+    const discordIdValue = getField(oldEmbed, "id discord")?.value;
     const discordId = extractDiscordId(discordIdValue);
 
     let member = null;
@@ -129,18 +210,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
         try {
           await member.roles.add(PARTENAIRE_ROLE_ID);
         } catch (error) {
-          console.log("Impossible d'ajouter le rôle partenaire :", error.message);
+          console.log("Impossible d'ajouter le rôle :", error.message);
         }
 
         try {
           await member.send(
-            `✅ **Partenariat accepté — Rockstar France**\n\n` +
-            `Votre demande de partenariat a été acceptée.\n\n` +
-            `Vous avez reçu le rôle **Partenaire** sur le serveur.\n\n` +
-            `Merci de respecter les conditions du partenariat.\n\n` +
-            `🔗 Serveur Discord : https://discord.gg/D4JpNnFnvT`
+            "✅ **Partenariat accepté — Rockstar France**\n\n" +
+            "Votre demande de partenariat a été acceptée.\n" +
+            "Le rôle **Partenaire** vous a été ajouté sur le serveur.\n\n" +
+            "Merci de respecter les conditions du partenariat."
           );
-        } catch {}
+        } catch {
+          console.log("MP impossible à envoyer.");
+        }
       }
 
       const acceptedEmbed = EmbedBuilder.from(oldEmbed)
@@ -161,6 +243,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       );
 
       await message.edit({
+        content: "📋 **Demande à traiter par le staff :**",
         embeds: [acceptedEmbed],
         components: [disabledRow]
       });
@@ -172,7 +255,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       await rapportsChannel.send({
         content:
-          `✅ **Partenariat accepté**\n` +
+          "✅ **Partenariat accepté**\n" +
           `👤 Responsable : ${pseudo}\n` +
           `🆔 ID Discord : ${discordId || "Non renseigné"}\n` +
           `🎭 Rôle ajouté : ${member ? "Oui" : "Non"}\n` +
@@ -189,13 +272,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (member) {
         try {
           await member.send(
-            `❌ **Partenariat refusé — Rockstar France**\n\n` +
-            `Votre demande de partenariat a été refusée pour le moment.\n\n` +
-            `Vous pouvez refaire une demande plus tard si votre projet évolue.\n\n` +
-            `Merci pour votre intérêt envers Rockstar France.\n\n` +
-            `🔗 Serveur Discord : https://discord.gg/D4JpNnFnvT`
+            "❌ **Partenariat refusé — Rockstar France**\n\n" +
+            "Votre demande de partenariat a été refusée.\n" +
+            "Vous pouvez retenter plus tard avec une demande plus complète."
           );
-        } catch {}
+        } catch {
+          console.log("MP impossible à envoyer.");
+        }
       }
 
       const refusedEmbed = EmbedBuilder.from(oldEmbed)
@@ -216,13 +299,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       );
 
       await message.edit({
+        content: "📋 **Demande à traiter par le staff :**",
         embeds: [refusedEmbed],
         components: [disabledRow]
       });
 
       await rapportsChannel.send({
         content:
-          `❌ **Partenariat refusé**\n` +
+          "❌ **Partenariat refusé**\n" +
           `👤 Responsable : ${pseudo}\n` +
           `🆔 ID Discord : ${discordId || "Non renseigné"}\n` +
           `👥 Membres : ${membres}\n` +
@@ -234,17 +318,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return interaction.editReply("❌ Partenariat refusé et enregistré.");
     }
   } catch (error) {
-    console.error("Erreur interactionCreate :", error);
-
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply("❌ Erreur pendant le traitement.");
-    } else {
-      await interaction.reply({
-        content: "❌ Erreur pendant le traitement.",
-        ephemeral: true
-      });
-    }
+    console.error("Erreur interaction :", error);
+    return interaction.editReply("❌ Erreur pendant le traitement.");
   }
+});
+
+/* =========================
+   LANCEMENT
+========================= */
+
+app.listen(PORT, () => {
+  console.log(`🌐 Serveur OAuth lancé sur le port ${PORT}`);
 });
 
 client.login(TOKEN);
