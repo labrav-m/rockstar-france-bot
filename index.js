@@ -51,14 +51,18 @@ client.on("messageCreate", async (message) => {
 
   const linkButtons = message.components.length > 0 ? message.components : [];
 
-  await message.channel.send({
-    content: "📋 **Demande à traiter par le staff :**",
-    embeds: [embed],
-    components: [...linkButtons, staffButtons]
-  });
-
-  console.log("✅ Demande repostée par le bot avec boutons staff.");
+ await message.channel.send({
+  content: "📋 **Demande à traiter par le staff :**",
+  embeds: [embed],
+  components: [...linkButtons, staffButtons]
 });
+
+try {
+  await message.delete();
+  console.log("🧹 Message Make supprimé après repost.");
+} catch (error) {
+  console.log("Impossible de supprimer le message Make :", error.message);
+}
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isButton()) return;
