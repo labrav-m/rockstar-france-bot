@@ -102,6 +102,20 @@ if (discordId) {
     console.log("Impossible d'ajouter le rôle partenaire :", error.message);
   }
 }
+    if (member) {
+  try {
+    await member.send(
+      `✅ **Partenariat accepté — Rockstar France**\n\n` +
+      `Bonjour,\n\n` +
+      `Votre demande de partenariat avec **Rockstar France** a été acceptée.\n\n` +
+      `Vous avez reçu le rôle **Partenaire** sur le serveur.\n\n` +
+      `Merci de respecter les conditions du partenariat et de rester disponible si le staff vous contacte.\n\n` +
+      `🔗 Serveur Discord : https://discord.gg/D4JpNnFnvT`
+    );
+  } catch (error) {
+    console.log("Impossible d'envoyer le message privé d'acceptation :", error.message);
+  }
+}
     const acceptedEmbed = EmbedBuilder.from(oldEmbed)
       .setTitle("✅ Partenariat accepté")
       .setColor(0x22c55e)
@@ -148,6 +162,30 @@ if (discordId) {
   }
 
   if (interaction.customId === "refuser_partenaire") {
+    let member = null;
+
+if (discordId) {
+  try {
+    member = await interaction.guild.members.fetch(discordId);
+  } catch (error) {
+    console.log("Impossible de trouver le membre pour le DM de refus :", error.message);
+  }
+}
+
+if (member) {
+  try {
+    await member.send(
+      `❌ **Partenariat refusé — Rockstar France**\n\n` +
+      `Bonjour,\n\n` +
+      `Votre demande de partenariat avec **Rockstar France** a été refusée pour le moment.\n\n` +
+      `Vous pouvez refaire une demande plus tard si votre projet évolue ou si vous souhaitez proposer une collaboration plus adaptée.\n\n` +
+      `Merci pour votre intérêt envers la communauté **Rockstar France**.\n\n` +
+      `🔗 Serveur Discord : https://discord.gg/D4JpNnFnvT`
+    );
+  } catch (error) {
+    console.log("Impossible d'envoyer le message privé de refus :", error.message);
+  }
+}
     const refusedEmbed = EmbedBuilder.from(oldEmbed)
       .setTitle("❌ Partenariat refusé")
       .setColor(0xef4444)
@@ -156,7 +194,6 @@ if (discordId) {
         value: `Refusé par ${interaction.user}`,
         inline: false
       });
-
     const disabledRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("partenaire_refuse")
