@@ -14,9 +14,6 @@ const {
 
 const app = express();
 app.use(express.json());
-git add .
-git commit -m "Ajout route staff"
-git push
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
