@@ -13,6 +13,10 @@ const {
 } = require("discord.js");
 
 const app = express();
+app.use(express.json());
+git add .
+git commit -m "Ajout route staff"
+git push
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -497,6 +501,66 @@ client.on(Events.InteractionCreate, async (interaction) => {
 /* =========================
    LANCEMENT
 ========================= */
+app.post("/staff-candidature", express.json(), async (req, res) => {
+  try {
+    const {
+      discord_id,
+      discord_username,
+      pseudo,
+      age,
+      plateforme,
+      poste,
+      motivation
+    } = req.body;
+
+    const recrutementChannel = await client.channels.fetch("1515826299091030169");
+
+    const embed = new EmbedBuilder()
+      .setTitle("📋 Nouvelle candidature staff")
+      .setColor(0xfacc15)
+      .addFields(
+        { name: "👤 Pseudo Discord", value: discord_username || "Inconnu" },
+        { name: "🆔 ID Discord", value: discord_id || "Inconnu" },
+        { name: "🎂 Âge", value: age || "Non renseigné" },
+        { name: "🎮 Plateforme", value: plateforme || "Non renseignée" },
+        { name: "🛡️ Poste souhaité", value: poste || "Non renseigné" },
+        { name: "⭐ Motivation", value: motivation || "Non renseignée" }
+      );
+
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`staff_accept_${discord_id}`)
+        .setLabel("Accepter")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId(`staff_refuse_${discord_id}`)
+        .setLabel("Refuser")
+        .setStyle(ButtonStyle.Danger),
+
+      new ButtonBuilder()
+        .setCustomId(`staff_interview_${discord_id}`)
+        .setLabel("Entretien")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    await recrutementChannel.send({
+      content: "@here 📋 Nouvelle candidature staff",
+      embeds: [embed],
+      components: [buttons]
+    });
+
+    res.json({
+      success: true
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`🌐 Serveur OAuth lancé sur le port ${PORT}`);
