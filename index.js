@@ -92,6 +92,16 @@ client.on("interactionCreate", async (interaction) => {
   const viewers = viewersField?.value || "Non renseigné";
 
   if (interaction.customId === "accepter_partenaire") {
+    let member = null;
+
+if (discordId) {
+  try {
+    member = await interaction.guild.members.fetch(discordId);
+    await member.roles.add(PARTENAIRE_ROLE_ID);
+  } catch (error) {
+    console.log("Impossible d'ajouter le rôle partenaire :", error.message);
+  }
+}
     const acceptedEmbed = EmbedBuilder.from(oldEmbed)
       .setTitle("✅ Partenariat accepté")
       .setColor(0x22c55e)
@@ -123,6 +133,8 @@ client.on("interactionCreate", async (interaction) => {
       content:
         `✅ **Partenariat accepté**\n` +
         `👤 Responsable : ${pseudo}\n` +
+        `🆔 ID Discord : ${discordId || "Non renseigné"}\n` +
+        `🎭 Rôle ajouté : ${member ? "Oui" : "Non"}\n` +
         `👥 Membres : ${membres}\n` +
         `🎥 Viewers moyens : ${viewers}\n` +
         `🔗 Lien : ${lien}\n` +
