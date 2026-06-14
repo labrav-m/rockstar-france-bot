@@ -87,6 +87,7 @@ client.on("interactionCreate", async (interaction) => {
   const pseudo = pseudoField?.value || "Non renseigné";
   const lien = lienField?.value || "Aucun lien";
   const discordIdField = fields.find(f => f.name.includes("ID Discord"));
+  const discordId = discordIdField?.value?.replace(/\D/g, "") || null;
   const membres = membresField?.value || "Non renseigné";
   const viewers = viewersField?.value || "Non renseigné";
 
