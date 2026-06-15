@@ -498,17 +498,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
 /* =========================
    LANCEMENT
 ========================= */
-app.post("/staff-candidature", express.json(), async (req, res) => {
+app.post("/staff-candidature", async (req, res) => {
   try {
-    const {
-      discord_id,
-      discord_username,
-      pseudo,
-      age,
-      plateforme,
-      poste,
-      motivation
-    } = req.body;
+    console.log("📩 Données reçues staff :", req.body);
+
+    const data = req.body || {};
+
+    const discord_id = data.discord_id || data.discordId || "";
+    const discord_username = data.discord_username || "";
+    const discord_global_name = data.discord_global_name || "";
+    const pseudo =
+      data.pseudo ||
+      discord_global_name ||
+      discord_username ||
+      "Inconnu";
+
+    const age = data.age || "Non renseigné";
+    const plateforme = data.plateforme || "Non renseignée";
+    const poste = data.poste || "Non renseigné";
+    const motivation = data.motivation || "Non renseignée";
 
     const recrutementChannel = await client.channels.fetch("1515826299091030169");
 
@@ -516,27 +524,31 @@ app.post("/staff-candidature", express.json(), async (req, res) => {
       .setTitle("📋 Nouvelle candidature staff")
       .setColor(0xfacc15)
       .addFields(
-        { name: "👤 Pseudo Discord", value: discord_username || "Inconnu" },
-        { name: "🆔 ID Discord", value: discord_id || "Inconnu" },
-        { name: "🎂 Âge", value: age || "Non renseigné" },
-        { name: "🎮 Plateforme", value: plateforme || "Non renseignée" },
-        { name: "🛡️ Poste souhaité", value: poste || "Non renseigné" },
-        { name: "⭐ Motivation", value: motivation || "Non renseignée" }
-      );
+        { name: "👤 Pseudo Discord", value: String(pseudo), inline: false },
+        { name: "🆔 ID Discord", value: String(discord_id || "Inconnu"), inline: false },
+        { name: "🎂 Âge", value: String(age), inline: false },
+        { name: "🎮 Plateforme", value: String(plateforme), inline: false },
+        { name: "🛡️ Poste souhaité", value: String(poste), inline: false },
+        { name: "⭐ Motivation", value: String(motivation), inline: false }
+      )
+      .setFooter({ text: "Rockstar France • Recrutement staff automatique" })
+      .setTimestamp();
+
+    const safeDiscordId = discord_id || "noid";
 
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`staff_accept_${discord_id}`)
+        .setCustomId(`staff_accept_${safeDiscordId}`)
         .setLabel("Accepter")
         .setStyle(ButtonStyle.Success),
 
       new ButtonBuilder()
-        .setCustomId(`staff_refuse_${discord_id}`)
+        .setCustomId(`staff_refuse_${safeDiscordId}`)
         .setLabel("Refuser")
         .setStyle(ButtonStyle.Danger),
 
       new ButtonBuilder()
-        .setCustomId(`staff_interview_${discord_id}`)
+        .setCustomId(`staff_interview_${safeDiscordId}`)
         .setLabel("Entretien")
         .setStyle(ButtonStyle.Primary)
     );
@@ -547,15 +559,11 @@ app.post("/staff-candidature", express.json(), async (req, res) => {
       components: [buttons]
     });
 
-    res.json({
-      success: true
-    });
+    return res.json({ success: true });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false
-    });
+    console.error("❌ Erreur /staff-candidature :", error);
+    return res.status(500).json({ success: false });
   }
 });
 
