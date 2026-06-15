@@ -22,6 +22,7 @@ const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
 const GUILD_ID = process.env.GUILD_ID;
 
 const RAPPORTS_CHANNEL_ID = "1512994911388172288";
+const PARTENARIATS_DEMANDES_CHANNEL_ID = "1514312230756290670";
 const VALIDES_CHANNEL_ID = "1515754593810649118";
 const PARTENAIRE_ROLE_ID = "1515065793790873761";
 
@@ -514,7 +515,7 @@ app.post("/partenariat", async (req, res) => {
     const viewers = data.viewers || "Non renseigné";
     const motivation = data.motivation || "Non renseignée";
 
-    const partenariatChannel = await client.channels.fetch("1515754593810649118");
+    const partenariatChannel = await client.channels.fetch(PARTENARIATS_DEMANDES_CHANNEL_ID);
 
     const embed = new EmbedBuilder()
       .setTitle("📩 Nouvelle demande de partenariat")
