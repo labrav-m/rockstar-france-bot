@@ -498,6 +498,70 @@ client.on(Events.InteractionCreate, async (interaction) => {
 /* =========================
    LANCEMENT
 ========================= */
+app.post("/partenariat", async (req, res) => {
+  try {
+    console.log("📩 Données reçues partenariat :", req.body);
+
+    const data = req.body || {};
+
+    const discord_id = data.discord_id || "";
+    const pseudo = data.pseudo || "Inconnu";
+    const type = data.type || "Non renseigné";
+    const lien = data.lien || "Aucun lien";
+    const plateforme = data.plateforme || "Non renseignée";
+    const proposition = data.proposition || "Non renseignée";
+    const membres = data.membres || "Non renseigné";
+    const viewers = data.viewers || "Non renseigné";
+    const motivation = data.motivation || "Non renseignée";
+
+    const partenariatChannel = await client.channels.fetch("1515754593810649118");
+
+    const embed = new EmbedBuilder()
+      .setTitle("📩 Nouvelle demande de partenariat")
+      .setColor(0xfacc15)
+      .setDescription(
+        "Une nouvelle demande de partenariat a été reçue via le site Rockstar France.\n" +
+        "Vérifiez les informations ci-dessous avant validation."
+      )
+      .addFields(
+        { name: "👤 Pseudo Discord du responsable", value: String(pseudo), inline: true },
+        { name: "📌 Type", value: String(type), inline: true },
+        { name: "🎮 Plateforme", value: String(plateforme), inline: true },
+        { name: "🤝 Proposition", value: String(proposition), inline: false },
+        { name: "⭐ Motivation", value: String(motivation), inline: false },
+        { name: "👥 Membres", value: String(membres), inline: true },
+        { name: "🎥 Viewers moyens", value: String(viewers), inline: true },
+        { name: "🔗 Lien", value: String(lien), inline: false },
+        { name: "🆔 ID Discord", value: String(discord_id || "Non renseigné"), inline: false }
+      )
+      .setFooter({ text: "Rockstar France • Système de partenariat automatisé" })
+      .setTimestamp();
+
+    const buttons = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("accepter_partenaire")
+        .setLabel("Accepter")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId("refuser_partenaire")
+        .setLabel("Refuser")
+        .setStyle(ButtonStyle.Danger)
+    );
+
+    await partenariatChannel.send({
+      content: "@here",
+      embeds: [embed],
+      components: [buttons]
+    });
+
+    return res.json({ success: true });
+
+  } catch (error) {
+    console.error("❌ Erreur /partenariat :", error);
+    return res.status(500).json({ success: false });
+  }
+});
 app.post("/staff-candidature", async (req, res) => {
   try {
     console.log("📩 Données reçues staff :", req.body);
